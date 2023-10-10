@@ -5,7 +5,7 @@ using namespace GGo::Json;
 Json::Json() 
 	:m_type(json_null)
 {
-
+	m_value.m_bool = false;
 }
 Json::Json(bool value) 
 	:m_type(json_bool)
@@ -68,30 +68,37 @@ Json::Json(Type type)
 }
 
 
-Json::Json(const Json* other)
+Json::Json(const Json& other)
 {
-	m_type = other->m_type;
+	//先清空自身分配内存再进行拷贝，避免内存泄漏
+	clear();
+	copy(other);
+}
+
+void Json::copy(const Json& other)
+{
+	m_type = other.m_type;
 	switch (m_type)
 	{
 	case GGo::Json::Json::json_null:
 		break;
 	case GGo::Json::Json::json_bool:
-		m_value.m_bool = other->m_value.m_bool;
+		m_value.m_bool = other.m_value.m_bool;
 		break;
 	case GGo::Json::Json::json_int:
-		m_value.m_int = other->m_value.m_int;
+		m_value.m_int = other.m_value.m_int;
 		break;
 	case GGo::Json::Json::json_double:
-		m_value.m_double = other->m_value.m_double;
+		m_value.m_double = other.m_value.m_double;
 		break;
 	case GGo::Json::Json::json_string:
-		m_value.m_string = other->m_value.m_string;
+		m_value.m_string = other.m_value.m_string;
 		break;
 	case GGo::Json::Json::json_array:
-		m_value.m_array = other->m_value.m_array;
+		m_value.m_array = other.m_value.m_array;
 		break;
 	case GGo::Json::Json::json_object:
-		m_value.m_object = other->m_value.m_object;
+		m_value.m_object = other.m_value.m_object;
 		break;
 	default:
 		break;
@@ -143,6 +150,7 @@ Json& Json::operator[](int index) {
 }
 void Json::append(const Json& other) {
 	if (m_type != json_array) {
+		clear();
 		m_type = json_array;
 		m_value.m_array = new std::vector<Json>();
 	}
@@ -194,11 +202,92 @@ std::string Json::Json::str() const
 			ss << "\"" << it->first << "\"" << ":";
 			ss << it->second.str();
 		}
-		ss << "]";
 		ss << "}";
 		break;
 	default:
 		break;
 	}
 	return ss.str();
+}
+void Json::clear()
+{
+	switch (m_type) {
+	case json_null:
+		break;
+	case json_bool:
+		m_value.m_bool = false;
+		break;
+	case json_int:
+		m_value.m_int = 0;
+		break;
+	case json_double:
+		m_value.m_double = 0.0f;
+		break;
+	case json_string:
+		delete m_value.m_string;
+		break;
+	case json_array:
+		for (auto it = m_value.m_array->begin();
+			it != m_value.m_array->end(); it++) {
+			it->clear();
+		}
+		delete m_value.m_array;
+		break;
+	case json_object:
+		for (auto it = m_value.m_object->begin();
+			it != m_value.m_object->end(); it++) {
+			it->second.clear();
+		}
+		delete m_value.m_object;
+		break;
+	default:
+		break;
+	}
+	m_type = json_null;
+}
+Json& Json::operator[](const char* key) {
+	std::string name(key);
+	return (*this)[name];
+}
+
+Json& Json::operator[](const std::string& key) {
+	if (m_type != json_object) {
+		clear();
+		m_type = json_object;
+		m_value.m_object = new std::map<std::string, Json>();
+	}
+	return ((*m_value.m_object))[key];
+}
+void Json::operator = (const Json& other) {
+	clear();
+	copy(other);
+}
+bool Json::operator == (const Json& other) {
+	if (m_type != other.m_type) {
+		return false;
+	}
+	switch (m_type)
+	{
+	case json_null:
+		return true;
+	case json_bool:
+		return m_value.m_bool == other.m_value.m_bool;
+	case json_int:
+		return m_value.m_int == other.m_value.m_int;
+	case json_string:
+		return *(m_value.m_string) == *(other.m_value.m_string);
+	case json_double:
+		return m_value.m_double == other.m_value.m_double;
+		//由于对象和数组的涉及嵌套结构，暂时先比较指针位置
+	case json_array:
+		return m_value.m_array == other.m_value.m_array;
+	case json_object:
+		return m_value.m_object == other.m_value.m_object;
+	default:
+		break;
+	}
+	return false;
+}
+bool Json::operator != (const Json& other) {
+	return !((*this) == other);
 }
