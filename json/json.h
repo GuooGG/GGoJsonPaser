@@ -10,13 +10,23 @@
 #include<vector>
 #include<stdexcept>
 #include<map>
+#include<sstream>
+#include<variant>
+#include<string_view>
 //命名空间隔离变量
 namespace GGo {
 namespace Json {
-//Json类型实现
-class Json {
-public:
-	enum Type {
+	//variant是C++17新引入的一种类型，代表了一种类型安全的联合体
+	using std::variant;
+	using std::string;
+	using std::vector;
+	using std::map;
+	using std::stringstream;
+	using std::logic_error;
+	using std::string_view;
+	using std::get_if;
+	//Json类型枚举类
+	enum class Type {
 		json_null = 0,
 		json_bool,
 		json_int,
@@ -25,55 +35,67 @@ public:
 		json_array,
 		json_object
 	};
-	//基本类型转换为Json类型API
+	using enum Type;
+	class Json;
+	//类型名定义
+	using null_t = string;
+	using int_t = int;
+	using bool_t = bool;
+	using double_t = double;
+	using string_t = string;
+	using array_t = vector<Json>;
+	using object_t = map<string, Json>;
+
+//Json类型实现
+class Json {
+public:
+	using Value = variant<bool_t, int_t, double_t, string_t, array_t, object_t>;
+	//基本类型转换为Json类型构造函数
 	Json();
+	//基本类型转换为Json类型构造函数
 	Json(bool value);
 	Json(int value);
 	Json(double value);
 	Json(const char* value);
-	Json(const std::string & value);
+	Json(const string & value);
 	Json(Type type);
-	Json(const Json& other);
 	//拷贝方法
-	void copy(const Json& other);
+	Json(const Json& other);
+	//析构函数，释放分配内存
+	~Json() = default;
 	//Json类型转换为基本类型API
 	operator bool();
 	operator int();
 	operator double();
-	operator std::string();
+	operator string();
 
 	//实现Json数组类型API
 	Json& operator[](int index);
-	void append(const Json& other);
+	void append(Json other);
 	
 	//实现Json对象类型API
 	Json& operator[](const char* key);
-	Json& operator[](const std::string& key);
+	Json& operator[](const string& key);
+
+	//基本运算符重载
 	void operator = (const Json& other);
 	bool operator == (const Json& other);
 	bool operator != (const Json& other);
 	//Json类型可视化
-	std::string str()const;
+	string str()const;
 	//清空内存
 	void clear();
-	//定义迭代器方便遍历数组类型json,这段代码没有处理类型不为数组的情况，有bug
-	typedef std::vector<Json>::iterator iterator;
-	iterator begin() {
-		return m_value.m_array->begin();
-	}
-	iterator end() {
-		return m_value.m_array->end();
-	}
+
 private:
-	//联合体存储Json值节省内存开销
-	union Value {
-		bool m_bool;
-		int m_int;
-		double m_double;
-		std::string* m_string;
-		std::vector<Json>* m_array;
-		std::map<std::string, Json>* m_object;
-	};
+	////联合体存储Json值节省内存开销
+	//union Value {
+	//	bool m_bool;
+	//	int m_int;
+	//	double m_double;
+	//	std::string* m_string;
+	//	std::vector<Json>* m_array;
+	//	std::map<std::string, Json>* m_object;
+	//};
 	Type m_type;
 	Value m_value;
 };
