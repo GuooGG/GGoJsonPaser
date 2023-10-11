@@ -1,9 +1,3 @@
-/*
-项目名称: GGoJsonPaser
-项目介绍：一个简单的Json解析器demo，个人练习项目，不使用其他第三方库，能够跨平台使用
-作者：	GGo
-开始时间：2023/10/10 20：00
-*/
 #pragma once
 
 #include<string>

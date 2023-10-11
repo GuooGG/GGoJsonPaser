@@ -27,6 +27,9 @@
     <ClInclude Include="json\json.h" />
     <ClInclude Include="json\parser.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Readme.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
