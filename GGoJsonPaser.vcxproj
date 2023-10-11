@@ -20,12 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="json\json.cpp" />
-    <ClCompile Include="json\paser.cpp" />
+    <ClCompile Include="json\parser.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="json\json.h" />
-    <ClInclude Include="json\paser.h" />
+    <ClInclude Include="json\parser.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -33,6 +33,7 @@
     <ProjectGuid>{76637541-62e4-4168-a2d6-fb7240624432}</ProjectGuid>
     <RootNamespace>GGoJsonPaser</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>GGoJsonParser</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

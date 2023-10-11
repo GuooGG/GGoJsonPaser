@@ -48,8 +48,10 @@ Json::Json(Type type)
 		break;
 	case json_array:
 		m_value = array_t();
+		break;
 	case json_object:
 		m_value = object_t();
+		break;
 	default:
 		throw logic_error("Invalid type.");
 	}
