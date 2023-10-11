@@ -75,13 +75,13 @@ Json::operator int() {
 }
 Json::operator double() {
 	if (m_type != json_double) {
-		throw std::logic_error("function Json::operator (double) requires double value");
+		throw logic_error("function Json::operator (double) requires double value");
 	}
 	return get<double>(m_value);
 }
 Json::operator string() {
 	if (m_type != json_string) {
-		throw std::logic_error("function Json::operator (string) requires string value");
+		throw logic_error("function Json::operator (string) requires string value");
 	}
 	return get<string>(m_value);
 }
@@ -121,6 +121,97 @@ Json& Json::operator[](int index)
 }
 void Json::append(Json other) {
 	if (m_type != json_array) {
-
+		if (m_type == json_null) {
+			m_type = json_array;
+			m_value = array_t();
+		}
+		throw std::logic_error("need  array type json.");
 	}
+	auto& arr = get<array_t>(m_value);
+	arr.push_back(std::move(other));
+	return;
+}
+
+
+//实现Json对象类型API
+Json& Json::operator[](const char* key) {
+	return (*this)[string(key)];
+}
+Json& Json::operator[](const string& key) {
+	if (m_type == json_null) {
+		m_type = json_object;
+		m_value = object_t();
+	}
+	if (m_type == json_object) {
+		auto& obj = get<object_t>(m_value);
+		return obj[key];
+	}
+	throw std::logic_error("not dict type! JObject::opertor[]()");
+}
+Json& Json::operator = (const Json& other) {
+	m_type = other.m_type;
+	m_value = other.m_value;
+	return *this;
+}
+
+
+//Json类型可视化
+string Json::str()const {
+	stringstream ss;
+	switch (m_type)
+	{
+	case json_null:
+		ss << "null";
+		break;
+	case json_bool:
+		if (get<bool_t>(m_value))
+		{
+			ss << "true";
+		}
+		else
+		{
+			ss << "false";
+		}
+		break;
+	case json_int:
+		ss << get<int_t>(m_value);
+		break;
+	case json_double:
+		ss << get<double_t>(m_value);
+		break;
+	case json_string:
+		ss << "\"" << get<string_t>(m_value) << "\"";
+		break;
+	case json_array:
+	{
+		auto& arr = get<array_t>(m_value);
+		ss << "[";
+		for (auto it = arr.begin(); it != arr.end(); it++) {
+			if (it != arr.begin()) {
+				ss << ",";
+			}
+			ss << it->str();
+		}
+		ss << "]";
+	}
+	break;
+	case json_object:
+	{
+		auto& obj = get<object_t>(m_value);
+		ss << "{";
+		for (auto it = obj.begin(); it != obj.end(); it++) 
+		{
+			if (it != obj.begin())
+			{
+				ss << ",";
+			}
+			ss << "\"" << it->first << "\":" << it->second.str();
+		}
+		ss << "}";
+	}
+	break;
+	default:
+		break;
+	}
+	return ss.str();
 }

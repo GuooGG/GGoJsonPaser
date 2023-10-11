@@ -76,15 +76,10 @@ public:
 	//实现Json对象类型API
 	Json& operator[](const char* key);
 	Json& operator[](const string& key);
+	Json& operator = (const Json& other);
 
-	//基本运算符重载
-	void operator = (const Json& other);
-	bool operator == (const Json& other);
-	bool operator != (const Json& other);
 	//Json类型可视化
 	string str()const;
-	//清空内存
-	void clear();
 
 private:
 	////联合体存储Json值节省内存开销
