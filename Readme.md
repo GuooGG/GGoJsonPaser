@@ -165,6 +165,245 @@ Json(const Json& other);
 string str()const;
 ```
 以上便是一个基本Json类型具有的核心API。具体实现见[json.cpp](json/json.cpp)
+### Parser类型
+类型定义代码
+```C++
+//Json解析器类
+class Parser {
+
+public:
+	Parser();
+	~Parser() = default;
+	void load(const string& str);
+	Json Parse();
+private:
+	void skip_white_space();
+	void skip_comment();
+	char get_next_token();
+
+	Json parse_null();
+	Json parse_bool();
+	Json parse_number();
+	Json parse_string();
+	Json parse_array();
+	Json parse_object();
+	
+
+	bool is_esc_consume(size_t pos);
+private:
+	string m_str;
+	size_t m_index;
+};
+```
+Parser类内部包含的成员：
+1. `string m_str;`待解析的Json字符串
+2. `size_t m_index`指向当前解析位置的指针
+3. `void load(const string& str)`传入待解析的Json字符串
+4. `Json Parse()`解析m_str
+5. `void skip_white_space()`跳过空白字符
+6. `void skip_comment()`跳过注释
+7. `char get_next_token()`得到下一个token
+8. `Json parse_null()`等等方法，解析特定值的内容
+9. `bool is_esc_consume(size_t pos)`检查反斜杠是否可以折叠
+#### 解析m_str
+```C++
+Json GGo::Json::Parser::Parse()
+{
+	char token = get_next_token();
+	if (token == 'n') {
+		return parse_null();
+	}
+	if (token == 't' || token == 'f') {
+		return parse_bool();
+	}
+	if (token == '-' || std::isdigit(token)) {
+		return parse_number();
+	}
+	if (token == '\"') {
+		return parse_string();
+	}
+	if (token == '[') {
+		return parse_array();
+	}
+	if (token == '{') {
+		return parse_object();
+	}
+	throw logic_error("unexpected character while parsing json");
+}
+
+```
+#### 解析null
+```C++
+Json GGo::Json::Parser::parse_null()
+{
+	if (m_str.compare(m_index, 4, "null") == 0) {
+		m_index += 4;
+		return Json();
+	}
+	throw logic_error("parse null error");
+}
+```
+#### 解析bool
+```C++
+Json GGo::Json::Parser::parse_bool()
+{
+	if (m_str.compare(m_index, 4, "true") == 0) {
+		m_index += 4;
+		return Json(true);
+	}
+	if (m_str.compare(m_index, 5, "false") == 0) {
+		m_index += 5;
+		return Json(false);
+	}
+	throw logic_error("parse bool error");
+}
+```
+#### 解析number
+```C++
+Json GGo::Json::Parser::parse_number() {
+	size_t pos = m_index;
+	if (m_str[m_index] == '-') {
+		m_index++;
+	}
+	//整数部分
+	if (isdigit(m_str[m_index])) {
+		while (isdigit(m_str[m_index])) {
+			m_index++;
+		}
+	}
+	else {
+		throw logic_error("invalid character in number parse");
+	}
+	if (m_str[m_index] != '.') {
+		return Json(std::atoi(m_str.c_str() + pos));
+	}
+	//浮点部分
+	if (m_str[m_index] == '.') {
+		m_index++;
+		if (!isdigit(m_str[m_index])) {
+			throw logic_error("invalid character in number parse");
+		}
+		while (isdigit(m_str[m_index])) {
+			m_index++;
+		}
+	}
+	return Json(std::atof(m_str.c_str() + pos));
+}
+```
+#### 解析string
+```C++
+Json GGo::Json::Parser::parse_string() {
+	auto pre_pos = ++m_index;
+	auto pos = m_str.find('"', m_index);
+	if (pos != string::npos)
+	{
+		//解析还没有结束，需要判断是否是转义的结束符号，如果是转义，则需要继续探查
+		while (true)
+		{
+			if (m_str[pos - 1] != '\\') //如果不是转义则解析结束
+			{
+				break;
+			}
+			//如果是转义字符，则判断是否已经被抵消，已经被消耗完则跳出，否则继续寻找下个字符串结束符
+			if (is_esc_consume(pos - 1))
+			{
+				break;
+			}
+			pos = m_str.find('"', pos + 1);
+			if (pos == string::npos)
+			{
+				throw std::logic_error(R"(expected left '"' in parse string)");
+			}
+		}
+		m_index = pos + 1;
+		return m_str.substr(pre_pos, pos - pre_pos);
+	}
+	throw std::logic_error("parse string error");
+}
+```
+#### 解析array
+```C++
+Json GGo::Json::Parser::parse_array() {
+	Json arr(json_array);
+	m_index++;
+	char ch = get_next_token();
+	if (ch == ']')
+	{
+		m_index++;
+		return arr;
+	}
+
+	while (true)
+	{
+		arr.append(Parse());
+		ch = get_next_token();
+		if (ch == ']')
+		{
+			m_index++;
+			break;
+		}
+
+		if (ch != ',') //如果不是逗号
+		{
+			throw std::logic_error("expected ',' in parse list");
+		}
+		//跳过逗号
+		m_index++;
+	}
+	return arr;
+}
+```
+#### 解析object
+```C++
+Json GGo::Json::Parser::parse_object() {
+	Json obj(json_object);
+	m_index++;
+	char ch = get_next_token();
+	if (ch == '}')
+	{
+		m_index++;
+		return obj;
+	}
+	while (true)
+	{
+		//解析key
+		string key = std::move(Parse());
+		ch = get_next_token();
+		if (ch != ':')
+		{
+			throw std::logic_error("expected ':' in parse dict");
+		}
+		m_index++;
+
+		//解析value
+		obj[key] = Parse();
+		ch = get_next_token();
+		if (ch == '}')
+		{
+			m_index++;
+			break; //解析完毕
+		}
+		if (ch != ',')//没有结束，此时必须为逗号
+		{
+			throw std::logic_error("expected ',' in parse dict");
+		}
+		//跳过逗号
+		m_index++;
+	}
+	return obj;
+}
+```
+详细实现代码见[parser.cpp](json/parser.cpp)
+### 使用方法
+```C++
+	string json = R"()";
+	//测试json解析器代码
+	Parser parser;
+	parser.load(json);
+	Json parsed = parser.Parse();
+	cout << parsed.str();
+```
+
 
 
 
