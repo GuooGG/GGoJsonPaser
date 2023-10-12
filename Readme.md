@@ -43,6 +43,7 @@ Json中的数据类型如下图
 6. 数组类型
 7. 对象类型
 其中**6.数组类型**和**7.对象类型**为**复合类型**，可互相包含全部七种类型。
+
 定义`using Value = variant<bool_t, int_t, double_t, string_t, array_t, object_t>;`作为值的类型（上文提到的类型安全联合体类型）
 ```C++
 //Json类型实现
